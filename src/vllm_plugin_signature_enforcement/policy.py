@@ -152,6 +152,7 @@ SECURITY_POLICY_SCHEMA: dict[str, Any] = {
                         "ignore_git_paths": {"type": "boolean"},
                         "use_staging": {"type": "boolean"},
                         "log_fingerprints": {"type": "boolean"},
+                        "ignore_unsigned_files": {"type": "boolean"},
                     },
                 }
             },
@@ -200,6 +201,8 @@ class SignatureVerificationConfig:
     log_fingerprints: bool = False
     """Whether to log certificate fingerprints when using the 'certificate'
     method."""
+    ignore_unsigned_files: bool = False
+    """Whether to ignore files not covered by the signature."""
     public_key: Optional[str] = None
     """A PEM file containing the public key required for signature
     verification when using the 'key' method."""
@@ -213,6 +216,7 @@ class SignatureVerificationConfig:
         identity: str,
         identity_provider: str,
         use_staging: bool,
+        ignore_unsigned_files: bool,
     ) -> None:
         """Verify using Sigstore"""
         try:
@@ -227,7 +231,9 @@ class SignatureVerificationConfig:
                     ignore_git_paths=ignore_git_paths,
                 )
                 .set_allow_symlinks(True)
-            ).verify(model_path, signature)
+            ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
+                model_path, signature
+            )
         except Exception as err:
             logger.error("Verification failed with error: %s", err)
             raise SignatureVerificationError(
@@ -242,6 +248,7 @@ class SignatureVerificationConfig:
         ignore_git_paths: bool,
         certificate_chain: Iterable[Path],
         log_fingerprints: bool,
+        ignore_unsigned_files: bool,
     ) -> None:
         """Verify using a certificate chain"""
         if log_fingerprints:
@@ -257,7 +264,9 @@ class SignatureVerificationConfig:
                     ignore_git_paths=ignore_git_paths,
                 )
                 .set_allow_symlinks(True)
-            ).verify(model_path, signature)
+            ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
+                model_path, signature
+            )
         except Exception as err:
             logger.error("Verification failed with error: %s", err)
             raise SignatureVerificationError(
@@ -275,6 +284,7 @@ class SignatureVerificationConfig:
         ignore_paths: Iterable[Path],
         ignore_git_paths: bool,
         public_key: Path,
+        ignore_unsigned_files: bool,
     ) -> None:
         """Verify using a public key (paired with a private one)."""
         try:
@@ -287,7 +297,9 @@ class SignatureVerificationConfig:
                     ignore_git_paths=ignore_git_paths,
                 )
                 .set_allow_symlinks(True)
-            ).verify(model_path, signature)
+            ).set_ignore_unsigned_files(ignore_unsigned_files).verify(
+                model_path, signature
+            )
         except Exception as err:
             logger.error("Verification failed with error: %s", err)
             raise SignatureVerificationError(
@@ -315,6 +327,7 @@ class SignatureVerificationConfig:
                 self.identity,
                 self.identity_provider,
                 self.use_staging,
+                self.ignore_unsigned_files,
             )
         elif self.verification_method == "certificate":
             cert_chain_paths = [
@@ -328,6 +341,7 @@ class SignatureVerificationConfig:
                 self.ignore_git_paths,
                 cert_chain_paths,
                 self.log_fingerprints,
+                self.ignore_unsigned_files,
             )
         elif self.verification_method == "key":
             if not self.public_key:
@@ -339,6 +353,7 @@ class SignatureVerificationConfig:
                 ignore_paths,
                 self.ignore_git_paths,
                 make_abs(model_path, self.public_key),
+                self.ignore_unsigned_files,
             )
         elif self.verification_method != "skip":
             raise NotImplementedError(
@@ -481,6 +496,9 @@ class SecurityPolicy:
             certificate_chain=signer_params.get("certificate_chain", []),
             log_fingerprints=signer_params.get("log_fingerprints", False),
             public_key=signer_params.get("public_key"),
+            ignore_unsigned_files=signer_params.get(
+                "ignore_unsigned_files", False
+            ),
         )
 
     def model_signature_verification_requested(self) -> bool:
