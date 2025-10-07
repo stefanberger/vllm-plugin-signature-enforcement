@@ -176,6 +176,7 @@ signer objects:
 | ignore_git_paths | true or false      | Optional  | Ignore git related files such as `.git`, `.gitignore`, and `.gitattributes` in the model path |
 | use_staging      | true or false      | Optional  | Sigstore staging servers were used for signing with the 'sigstore' method |
 | ignore_path      | list of file paths | Optional  | Files to ignore when verifying the signature, e.g. `['foo','bar']` |
+| ignore_unsigned_files | true or false | Optional  | Ignore files not covered by the signature; default is 'false' |
 
 All files mentioned in this table are assumed relative to the model path
 unless they are given as absolute paths (starting with '/').

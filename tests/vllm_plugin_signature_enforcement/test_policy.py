@@ -219,7 +219,8 @@ from vllm_plugin_signature_enforcement.policy import SecurityPolicy
             '            "ignore_paths": ["/foo/bar","/bar/baz"],'
             '            "ignore_git_paths": false,'
             '            "log_fingerprints": true,'
-            '            "use_staging": false'
+            '            "use_staging": false,'
+            '            "ignore_unsigned_files": true'
             "        }"
             "    }"
             " }"
