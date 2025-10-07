@@ -1,19 +1,20 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
+from collections.abc import Iterable
+from dataclasses import field
 import json
 import logging
 import os
-from collections.abc import Iterable
-from dataclasses import field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, Optional
 
 import jsonschema
 import model_signing
-import regex as re
 from pydantic import ConfigDict
+import regex as re
 from regex import Pattern
+
 
 if TYPE_CHECKING:
     from dataclasses import dataclass
@@ -33,110 +34,102 @@ SECURITY_POLICY_SCHEMA: dict[str, Any] = {
             "additionalProperties": False,
             "properties": {
                 "signatures": {
-                    "description":
-                    "A dictionary describing the signers of AI models",
+                    "description": "A dictionary describing the signers of AI models",
                     "type": "object",
                     "additionalProperties": False,
                     "properties": {
-                        "loras": {
-                            "$ref": "#/definitions/signed-object"
-                        },
-                        "models": {
-                            "$ref": "#/definitions/signed-object"
-                        },
+                        "loras": {"$ref": "#/definitions/signed-object"},
+                        "models": {"$ref": "#/definitions/signed-object"},
                         "signers": {
-                            "description":
-                            "A dictionary of signer descriptions",
+                            "description": "A dictionary of signer descriptions",
                             "type": "object",
                             "patternProperties": {
                                 "": {
-                                    "description":
-                                    "A dictionary describing a signer",
-                                    "type":
-                                    "object",
+                                    "description": "A dictionary describing a signer",
+                                    "type": "object",
                                     "required": ["verification_method"],
-                                    "additionalProperties":
-                                    False,
+                                    "additionalProperties": False,
                                     "properties": {
                                         "verification_method": {
-                                            "description":
-                                            "The signature verification method",
-                                            "type":
-                                            "string",
+                                            "description": "The signature verification method",
+                                            "type": "string",
                                             "enum": [
-                                                "sigstore", "certificate",
-                                                "key", "skip"
-                                            ]
+                                                "sigstore",
+                                                "certificate",
+                                                "key",
+                                                "skip",
+                                            ],
                                         },
                                         "identity": {
                                             "type": "string",
-                                            "format": "email"
+                                            "format": "email",
                                         },
-                                        "identity_provider": {
-                                            "type": "string"
-                                        },
+                                        "identity_provider": {"type": "string"},
                                         "certificate_chain": {
                                             "type": "array",
-                                            "items": {
-                                                "type": "string"
-                                            }
+                                            "items": {"type": "string"},
                                         },
-                                        "public_key": {
-                                            "type": "string"
-                                        }
+                                        "public_key": {"type": "string"},
                                     },
-                                    "allOf": [{
-                                        "if": {
-                                            "properties": {
-                                                "verification_method": {
-                                                    "const": "sigstore"
+                                    "allOf": [
+                                        {
+                                            "if": {
+                                                "properties": {
+                                                    "verification_method": {
+                                                        "const": "sigstore"
+                                                    }
                                                 }
-                                            }
+                                            },
+                                            "then": {
+                                                "required": [
+                                                    "identity",
+                                                    "identity_provider",
+                                                ]
+                                            },
                                         },
-                                        "then": {
-                                            "required":
-                                            ["identity", "identity_provider"]
-                                        }
-                                    }, {
-                                        "if": {
-                                            "properties": {
-                                                "verification_method": {
-                                                    "const": "certificate"
+                                        {
+                                            "if": {
+                                                "properties": {
+                                                    "verification_method": {
+                                                        "const": "certificate"
+                                                    }
                                                 }
-                                            }
+                                            },
+                                            "then": {
+                                                "required": [
+                                                    "certificate_chain"
+                                                ]
+                                            },
                                         },
-                                        "then": {
-                                            "required": ["certificate_chain"]
-                                        }
-                                    }, {
-                                        "if": {
-                                            "properties": {
-                                                "verification_method": {
-                                                    "const": "key"
+                                        {
+                                            "if": {
+                                                "properties": {
+                                                    "verification_method": {
+                                                        "const": "key"
+                                                    }
                                                 }
-                                            }
+                                            },
+                                            "then": {
+                                                "required": ["public_key"]
+                                            },
                                         },
-                                        "then": {
-                                            "required": ["public_key"]
-                                        }
-                                    }, {
-                                        "if": {
-                                            "properties": {
-                                                "verification_method": {
-                                                    "const": "skip"
+                                        {
+                                            "if": {
+                                                "properties": {
+                                                    "verification_method": {
+                                                        "const": "skip"
+                                                    }
                                                 }
-                                            }
+                                            },
+                                            "then": {"required": []},
                                         },
-                                        "then": {
-                                            "required": []
-                                        }
-                                    }]
+                                    ],
                                 }
-                            }
-                        }
-                    }
+                            },
+                        },
+                    },
                 }
-            }
+            },
         }
     },
     "definitions": {
@@ -150,32 +143,20 @@ SECURITY_POLICY_SCHEMA: dict[str, Any] = {
                     "required": ["signer"],
                     "additionalProperties": False,
                     "properties": {
-                        "signer": {
-                            "type": "string"
-                        },
-                        "signature": {
-                            "type": "string"
-                        },
+                        "signer": {"type": "string"},
+                        "signature": {"type": "string"},
                         "ignore_paths": {
                             "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
+                            "items": {"type": "string"},
                         },
-                        "ignore_git_paths": {
-                            "type": "boolean"
-                        },
-                        "use_staging": {
-                            "type": "boolean"
-                        },
-                        "log_fingerprints": {
-                            "type": "boolean"
-                        },
-                    }
+                        "ignore_git_paths": {"type": "boolean"},
+                        "use_staging": {"type": "boolean"},
+                        "log_fingerprints": {"type": "boolean"},
+                    },
                 }
-            }
+            },
         }
-    }
+    },
 }
 
 
@@ -183,6 +164,7 @@ SECURITY_POLICY_SCHEMA: dict[str, Any] = {
 # handling of errors in completions API
 class SignatureVerificationError(BaseException):
     """A signature verification error occurred"""
+
     pass
 
 
@@ -239,14 +221,18 @@ class SignatureVerificationConfig:
                 oidc_issuer=identity_provider,
                 use_staging=use_staging,
             ).set_hashing_config(
-                model_signing.hashing.Config().set_ignored_paths(
+                model_signing.hashing.Config()
+                .set_ignored_paths(
                     paths=list(ignore_paths) + [signature],
                     ignore_git_paths=ignore_git_paths,
-                ).set_allow_symlinks(True)).verify(model_path, signature)
+                )
+                .set_allow_symlinks(True)
+            ).verify(model_path, signature)
         except Exception as err:
             logger.error("Verification failed with error: %s", err)
             raise SignatureVerificationError(
-                f"Sigstore verification failed on {model_path}") from err
+                f"Sigstore verification failed on {model_path}"
+            ) from err
 
     def _verify_certificate(
         self,
@@ -265,15 +251,20 @@ class SignatureVerificationConfig:
                 certificate_chain=certificate_chain,
                 log_fingerprints=log_fingerprints,
             ).set_hashing_config(
-                model_signing.hashing.Config().set_ignored_paths(
+                model_signing.hashing.Config()
+                .set_ignored_paths(
                     paths=list(ignore_paths) + [signature],
                     ignore_git_paths=ignore_git_paths,
-                ).set_allow_symlinks(True)).verify(model_path, signature)
+                )
+                .set_allow_symlinks(True)
+            ).verify(model_path, signature)
         except Exception as err:
             logger.error("Verification failed with error: %s", err)
-            raise SignatureVerificationError("Signature verification with "
-                                             "certificate failed "
-                                             f"on {model_path}") from err
+            raise SignatureVerificationError(
+                "Signature verification with "
+                "certificate failed "
+                f"on {model_path}"
+            ) from err
         finally:
             logging.getLogger("model_signing").setLevel(logging.WARNING)
 
@@ -288,16 +279,20 @@ class SignatureVerificationConfig:
         """Verify using a public key (paired with a private one)."""
         try:
             model_signing.verifying.Config().use_elliptic_key_verifier(
-                public_key=public_key, ).set_hashing_config(
-                    model_signing.hashing.Config().set_ignored_paths(
-                        paths=list(ignore_paths) + [signature],
-                        ignore_git_paths=ignore_git_paths,
-                    ).set_allow_symlinks(True)).verify(model_path, signature)
+                public_key=public_key
+            ).set_hashing_config(
+                model_signing.hashing.Config()
+                .set_ignored_paths(
+                    paths=list(ignore_paths) + [signature],
+                    ignore_git_paths=ignore_git_paths,
+                )
+                .set_allow_symlinks(True)
+            ).verify(model_path, signature)
         except Exception as err:
             logger.error("Verification failed with error: %s", err)
             raise SignatureVerificationError(
-                "Signature verification with public key failed "
-                f"on {model_path}") from err
+                f"Signature verification with public key failed on {model_path}"
+            ) from err
 
     def verify_signature(self, model: str) -> None:
         """Verify the signature of a model."""
@@ -312,28 +307,44 @@ class SignatureVerificationConfig:
         signature = make_abs(model_path, self.signature)
 
         if self.verification_method == "sigstore":
-            self._verify_sigstore(model_path, signature, ignore_paths,
-                                  self.ignore_git_paths, self.identity,
-                                  self.identity_provider, self.use_staging)
+            self._verify_sigstore(
+                model_path,
+                signature,
+                ignore_paths,
+                self.ignore_git_paths,
+                self.identity,
+                self.identity_provider,
+                self.use_staging,
+            )
         elif self.verification_method == "certificate":
             cert_chain_paths = [
                 make_abs(model_path, f) for f in self.certificate_chain
             ]
 
-            self._verify_certificate(model_path, signature, ignore_paths,
-                                     self.ignore_git_paths, cert_chain_paths,
-                                     self.log_fingerprints)
+            self._verify_certificate(
+                model_path,
+                signature,
+                ignore_paths,
+                self.ignore_git_paths,
+                cert_chain_paths,
+                self.log_fingerprints,
+            )
         elif self.verification_method == "key":
             if not self.public_key:
                 raise ValueError("Missing public key")
 
-            self._verify_private_key(model_path, signature, ignore_paths,
-                                     self.ignore_git_paths,
-                                     make_abs(model_path, self.public_key))
+            self._verify_private_key(
+                model_path,
+                signature,
+                ignore_paths,
+                self.ignore_git_paths,
+                make_abs(model_path, self.public_key),
+            )
         elif self.verification_method != "skip":
             raise NotImplementedError(
                 "Unsupported signature verification method "
-                f"'{self.verification_method}'")
+                f"'{self.verification_method}'"
+            )
 
         if self.verification_method == "skip":
             logger.info("Skipped signature verification on %s", model)
@@ -342,7 +353,6 @@ class SignatureVerificationConfig:
 
 
 class SecurityPolicy:
-
     policy_json: dict[str, Any] = field(default_factory=dict)
 
     def __init__(self, policy_json: dict[str, Any]) -> None:
@@ -361,12 +371,17 @@ class SecurityPolicy:
         """Validate the policy with scheme and correctness of regular
         expressions and check consistency.
         """
-        jsonschema.validate(instance=self.policy_json,
-                            schema=SECURITY_POLICY_SCHEMA)
+        jsonschema.validate(
+            instance=self.policy_json, schema=SECURITY_POLICY_SCHEMA
+        )
 
         # Get the ids of all signers
-        signers = self.policy_json.get("policy", {})\
-            .get("signatures", {}).get("signers", {}).keys()
+        signers = (
+            self.policy_json.get("policy", {})
+            .get("signatures", {})
+            .get("signers", {})
+            .keys()
+        )
 
         self.compile_regexs("models", signers)
         self.compile_regexs("loras", signers)
@@ -375,8 +390,11 @@ class SecurityPolicy:
         """Compile the regular expressions and while walking all the entries
         check for consistency with availability of all signers
         """
-        param_map = self.policy_json.get("policy", {})\
-            .get("signatures", {}).get(object_types, {})
+        param_map = (
+            self.policy_json.get("policy", {})
+            .get("signatures", {})
+            .get(object_types, {})
+        )
 
         self.regex_map[object_types] = []
         for key, value in param_map.items():
@@ -390,7 +408,8 @@ class SecurityPolicy:
             signer = value["signer"]
             if signer not in signers:
                 raise ValueError(
-                    f"Signer {signer} cannot be found in 'signers' map.")
+                    f"Signer {signer} cannot be found in 'signers' map."
+                )
 
     @classmethod
     def from_file(cls, security_policy: str) -> "SecurityPolicy":
@@ -400,15 +419,15 @@ class SecurityPolicy:
 
         return SecurityPolicy(policy_json)
 
-    def __get_model_params(self, param_map: dict[str, Any], object_type: str,
-                           path: str) -> Optional[dict[str, Any]]:
-
+    def __get_model_params(
+        self, param_map: dict[str, Any], object_type: str, path: str
+    ) -> Optional[dict[str, Any]]:
         # Find the parameters by the exact path
         model_params = param_map.get(path)
-        if not model_params and len(path) > 0 and path[-1] != '/':
+        if not model_params and len(path) > 0 and path[-1] != "/":
             # One more try with '/' appended to path
             # Paths in policy should all end in '/'
-            model_params = param_map.get(path + '/')
+            model_params = param_map.get(path + "/")
         if not model_params:
             # Find the parameters by assuming that the path
             # in the policy is a regular expression
@@ -419,28 +438,37 @@ class SecurityPolicy:
         return model_params
 
     def getSignatureVerificationConfig(
-            self, object_type: str, path: str) -> SignatureVerificationConfig:
+        self, object_type: str, path: str
+    ) -> SignatureVerificationConfig:
         """Get the SignatureVerificationConfig for the given path."""
         # Get the map for all models for example
-        param_map = self.policy_json.get("policy", {})\
-            .get("signatures", {}).get(object_type)
+        param_map = (
+            self.policy_json.get("policy", {})
+            .get("signatures", {})
+            .get(object_type)
+        )
 
         model_params = self.__get_model_params(param_map, object_type, path)
         if not model_params:
             raise ValueError(
-                f"No signature verification parameters found for '{path}'")
+                f"No signature verification parameters found for '{path}'"
+            )
 
         # Get the signer parameter
         signer = model_params.get("signer")
         if not signer:
             raise ValueError(f"Could not find signer for '{path}'")
 
-        signer_params = self.policy_json.get("policy", {})\
-            .get("signatures", {}).get("signers", {})\
+        signer_params = (
+            self.policy_json.get("policy", {})
+            .get("signatures", {})
+            .get("signers", {})
             .get(signer)
+        )
         if not signer_params:
             raise ValueError(
-                f"Parameters for signer {signer} could not be found")
+                f"Parameters for signer {signer} could not be found"
+            )
 
         return SignatureVerificationConfig(
             verification_method=signer_params.get("verification_method"),
@@ -459,21 +487,27 @@ class SecurityPolicy:
         """Model signature verification is requested if models are specified
         in the policy.
         """
-        return self.policy_json.get("policy", {})\
-            .get("signatures", {})\
-            .get("models") is not None
+        return (
+            self.policy_json.get("policy", {})
+            .get("signatures", {})
+            .get("models")
+            is not None
+        )
 
     def lora_signature_verification_requested(self) -> bool:
         """LoRA signature verification is requested if loras are specified
         in the policy.
         """
-        return self.policy_json.get("policy", {})\
-            .get("signatures", {})\
-            .get("loras") is not None
+        return (
+            self.policy_json.get("policy", {})
+            .get("signatures", {})
+            .get("loras")
+            is not None
+        )
 
-    def verify_model_signature(self,
-                               model_path: str,
-                               model: Optional[str] = None) -> None:
+    def verify_model_signature(
+        self, model_path: str, model: Optional[str] = None
+    ) -> None:
         """Verify the signature on a model given its path."""
         if model is None:
             model = model_path
@@ -482,15 +516,17 @@ class SecurityPolicy:
 
         self.models_verified.add(model)
 
-    def maybe_verify_model_signature(self,
-                                     model_path: str,
-                                     model: Optional[str] = None) -> None:
+    def maybe_verify_model_signature(
+        self, model_path: str, model: Optional[str] = None
+    ) -> None:
         """If the model path exists (as directory or a file) and signature
         verification on models is requested, then verify its signature.
         """
-        if self.model_signature_verification_requested() and \
-           os.path.isabs(model_path) and \
-           os.path.exists(model_path):
+        if (
+            self.model_signature_verification_requested()
+            and os.path.isabs(model_path)
+            and os.path.exists(model_path)
+        ):
             self.verify_model_signature(model_path, model)
 
     def model_signature_verification_needed(self, model_path) -> bool:

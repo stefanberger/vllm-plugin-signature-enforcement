@@ -1,12 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
-import sys
 from enum import Enum
+import sys
 
 
 class SPDXStatus(Enum):
     """SPDX header status enumeration"""
+
     EMPTY = "empty"  # empty __init__.py
     COMPLETE = "complete"
     MISSING_LICENSE = "missing_license"  # Only has copyright line
@@ -16,10 +17,13 @@ class SPDXStatus(Enum):
 
 FULL_SPDX_HEADER = (
     "# SPDX-License-Identifier: Apache-2.0\n"
-    "# SPDX-FileCopyrightText: Copyright contributors to the vLLM project")
+    "# SPDX-FileCopyrightText: Copyright contributors to the vLLM project"
+)
 
 LICENSE_LINE = "# SPDX-License-Identifier: Apache-2.0"
-COPYRIGHT_LINE = "# SPDX-FileCopyrightText: Copyright contributors to the vLLM project"  # noqa: E501
+COPYRIGHT_LINE = (
+    "# SPDX-FileCopyrightText: Copyright contributors to the vLLM project"  # noqa: E501
+)
 
 
 def check_spdx_header_status(file_path):
@@ -85,10 +89,7 @@ def add_header(file_path, status):
             for i, line in enumerate(lines):
                 if line.strip() == LICENSE_LINE:
                     # Insert copyright line after license line
-                    lines.insert(
-                        i + 1,
-                        f"{COPYRIGHT_LINE}\n",
-                    )
+                    lines.insert(i + 1, f"{COPYRIGHT_LINE}\n")
                     break
 
             file.writelines(lines)
@@ -123,8 +124,9 @@ def main():
             continue
 
     # Collect all files that need fixing
-    all_files_to_fix = (files_missing_both + files_missing_copyright +
-                        files_missing_license)
+    all_files_to_fix = (
+        files_missing_both + files_missing_copyright + files_missing_license
+    )
     if all_files_to_fix:
         print("The following files are missing the SPDX header:")
         if files_missing_both:
