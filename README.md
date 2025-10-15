@@ -12,8 +12,7 @@ The signature enforcement of this plugin builds on signatures created by the
 
 ## Installing the Plugin
 
-Note: Installation using `pip` is not possible, yet, since the plugin
-requires a new release of the model signing library (> v1.0.1).
+Note: Installation using `pip` is not possible, yet.
 
 To install the plugin it is necessary to first activate the `venv` of vLLM
 and then install the plugin into its `venv`:
