@@ -29,7 +29,7 @@ classifiers = [
 ]
 dependencies = [
   "jsonschema",
-  "model-signing @ git+https://github.com/sigstore/model-transparency",
+  "model-signing>=v1.1.0",
   "regex",
   "types-jsonschema",
   "typing_extensions",
