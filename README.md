@@ -45,7 +45,7 @@ for each one of the verification methods.
 To enforcement signature verification on AI models it is necessary to
 write a signature enforcement policy. This policy allows to specify which
 AI models have their signature verified and which signature verification
-method is to be used. A signature enforcement policy that expected the
+method is to be used. A signature enforcement policy that expects the
 'sigstore' type of signature on an AI model may look like this:
 
 ```text
@@ -53,15 +53,15 @@ method is to be used. A signature enforcement policy that expected the
   "policy": {
     "signatures": {
       "signers": {
-        "signer1": {
+        "granite-verify": {
           "verification_method": "sigstore",
-          "identity": "foo@bar.com",
-          "identity_provider": "http://baz.com/oauth2"
+          "identity": "Granite-verify@ibm.com",
+          "identity_provider": "https://sigstore.verify.ibm.com/oauth2"
         }
       },
       "models": {
-        "/tmp/foo/" {
-          "signer": "signer1"
+        "/tmp/test/granite-4.0-micro/": {
+          "signer": "granite-verify"
         }
       }
     }
@@ -69,11 +69,12 @@ method is to be used. A signature enforcement policy that expected the
 }
 ```
 
-The above policy shows a single AI model with the local file path `/tmp/foo`
-under its `models` object. It references the signer `signer1`, which is
-mentioned above under the `signers` object. It requires the sigstore
-verification method and the identity that is expected to have signed the
-model must be `foo@bar.com` using the identity_provider `http://baz.com/oauth2`.
+The above policy shows a single AI model with the local file path
+`/tmp/test/granite-4.0-micro` under its `models` object. It references the
+signer `granite-preview`, which is mentioned above under the `signers` object.
+It requires the sigstore verification method and the identity that is expected
+to have signed the model must be `Granite-verify@ibm.com` using the
+identity_provider `https://sigstore.verify.ibm.com/oauth2`.
 Since no other models are enumerated in the `models` object, it will not be
 possible to load any other models with this policy. The vLLM log will show
 whether signature verification succeeded or failed.
@@ -89,16 +90,16 @@ methods leads to a more complex policy:
   "policy": {
     "signatures": {
       "signers": {
-        "signer1": {
+        "granite-verify": {
           "verification_method": "sigstore",
-          "identity": "foo@bar.com",
-          "identity_provider": "http://baz.com/oauth2"
-        },
-        "signer2": {
+          "identity": "Granite-verify@ibm.com",
+          "identity_provider": "https://sigstore.verify.ibm.com/oauth2"
+        }
+        "cert-signer": {
           "verification_method": "certificate",
           "certificate_chain": ["/tmp/baz/cert1.pem", "/tmp/baz/cert2.pem"]
         },
-        "signer3": {
+        "key-signer": {
           "verification_method": "key",
           "public_key": "/tmp/baz/pubkey.pem"]
         },
@@ -107,19 +108,19 @@ methods leads to a more complex policy:
         }
       },
       "models": {
-        "/tmp/foo/" {
-          "signer": "signer1"
-        },
+        "/tmp/test/granite-4.0-micro/": {
+          "signer": "granite-verify"
+        }
         "regex:/tmp/(baz1|baz2)(/)?": {
-          "signer": "signer2",
+          "signer": "cert-signer",
           "log_fingerprints": true,
-          "ignore_paths": ["foo", "bar"],
+          "ignore_paths": ["foo", "bar"]
         },
         "/tmp/test/": {
           "signer": "no-signer"
         },
         "regex:.*": {
-          "signer": "signer3",
+          "signer": "key-signer"
         }
       }
     }
@@ -151,8 +152,9 @@ The model path `/tmp/test/` references the `no-signer` signer, and therefore
 will skip signature verification on the model found under `/tmp/test/`.
 
 The last model path is again a regular expression `.*` that covers all
-(remaining) paths and since it references `signer3`, it will require that
-all these models will have to pass signature verification with a public key.
+(remaining) paths and since it references `key-signer`, it will require that
+all these models will have to pass signature verification with the
+referenced public key.
 
 To select the signature verification parameters for a particular model,
 vLLM will first try to perform an exact path match of the model path from
@@ -245,7 +247,7 @@ cat <<_EOF_ >policy.json
   "policy": {
     "signatures": {
       "signers": {
-        "signer1": {
+        "granite-verify": {
           "verification_method": "sigstore",
           "identity": "Granite-verify@ibm.com",
           "identity_provider": "https://sigstore.verify.ibm.com/oauth2"
@@ -253,7 +255,7 @@ cat <<_EOF_ >policy.json
       },
       "models": {
         "/tmp/test/granite-4.0-micro/": {
-          "signer": "signer1"
+          "signer": "granite-verify"
         }
       }
     }
