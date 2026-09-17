@@ -18,7 +18,7 @@ To install the plugin it is necessary to first activate the `venv` of vLLM
 and then install the plugin into its `venv`:
 
 ```bash
-cd venv
+cd vllm
 . venv/bin/activate
 cd ../vllm-plugin-signature-enforcement
 pip install -e .
